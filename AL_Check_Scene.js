@@ -60,12 +60,9 @@ function AL_Check_Scene(){
 
 	var message_bad_mc_list = "BAD MC \n";
 
-
 	var final_regex = /\b-GUIDE|\bGUI|\bTIGE_paupiere|\bOMBRE/g;
 
 	var OVEWRITE_KEYS = false;
-
-
 
 
 	/*FIX VAR*/
@@ -129,6 +126,10 @@ function AL_Check_Scene(){
 
 	    var all_nodes = 0;
 
+	    var inputL = new LineEdit;
+	    var line1 = new Label();
+	    var line2 = new Label();
+	    var line3 = new Label();
 	    var allBox = new CheckBox;
 
 		if(available_types_list.length+available_fixes_list.length>0){
@@ -167,13 +168,13 @@ function AL_Check_Scene(){
 			inputL.label = "Exclude nodes with names containing : ";
 			d.add( inputL );
 			final_regex="";
-			inputL.text="OMBRE";
+			inputL.text="RIG";
 
 		    var line3 = new Label();
 			line3.text ="\n**************\n";
 			d.add( line3 );
 
-		    allBox.text = "FIXE THEM ALL !"+" ( "+all_nodes+" nodes )";;
+		    allBox.text = "FIXE THEM ALL !"+" ( "+all_nodes+" nodes )";
 		    allBox.checked = false;
 		    d.add( allBox );
 
@@ -219,7 +220,8 @@ function AL_Check_Scene(){
 		    	}	  	
 	    	}
 
-	    	if(inputL.text!=""){
+
+	    	if(inputL.text!=""&&inputL.text!=null){
 				final_regex = build_regex(inputL.text+",");
 
 	    	}
@@ -248,8 +250,9 @@ function AL_Check_Scene(){
 
 
 	function fetch_nodes(){
-		
 
+		MessageLog.trace("fetch_nodes")
+		
 		scene_drawings = node.getNodes([relevent_types[0]]);
 
 		scene_composites = node.getNodes([relevent_types[1]]);
@@ -276,11 +279,10 @@ function AL_Check_Scene(){
 
 			currentNode = scene_drawings[i];
 
-			var currentName = node.getName(currentNode);
+			var currentName = node.getName(currentNode)
 
 			var problemes_list = [];
 
-			if(!check_name_pattern(currentName)){
 
 				if(node.getTextAttr( currentNode,cf,"canAnimate")=="Y"){
 					problemes_list.push("Animate using animation tool is ON !");
@@ -294,7 +296,6 @@ function AL_Check_Scene(){
 
 				}
 
-			}
 
 
 			
@@ -339,11 +340,9 @@ function AL_Check_Scene(){
 
 			currentNode = scene_composites[i];
 
-			var currentName = node.getName(currentNode);
-
 			var problemes_list = [];
 
-			if(!check_name_pattern(currentName)){
+			var currentName = node.getName(currentNode)
 
 				if(node.getTextAttr( currentNode,cf,"compositeMode")!="Pass Through"){
 
@@ -353,7 +352,6 @@ function AL_Check_Scene(){
 
 				}
 
-			}
 			
 			if(problemes_list.length>0){
 
@@ -391,20 +389,14 @@ function AL_Check_Scene(){
 
 			var problemes_list = [];
 
-			currentNode = scene_pegs[i];
+			var currentNode = scene_pegs[i]
 
 			var currentName = node.getName(currentNode);
-
-
-			if(!check_name_pattern(currentName)){
 
 
 				var keys = get_Keys(currentNode);
 
 				var rest= get_Rest(currentNode )
-
-				MessageLog.trace()
-
 
 				if(rest.z > 2){
 
@@ -434,7 +426,7 @@ function AL_Check_Scene(){
 				}
 
 
-			}
+
 
 
 			if(problemes_list.length>0){
@@ -581,11 +573,15 @@ function AL_Check_Scene(){
 
 			current_fix = fix_list[i];
 			node_type = node.type(current_fix.node_to_fix)
-				
-			if(includes(selected_types,node_type)&&includes(selected_fixes,current_fix.fixtype)){
 
-				MessageLog.trace(current_fix)
-				current_fix.apply();
+			if(!check_name_pattern(current_fix.node_to_fix)){
+					
+				if(includes(selected_types,node_type)&&includes(selected_fixes,current_fix.fixtype)){
+
+					MessageLog.trace(current_fix)
+					current_fix.apply();
+
+				}
 
 			}
 
@@ -702,7 +698,7 @@ function AL_Check_Scene(){
 				  		MessageLog.trace("unknown fix type")
 				}
 
-					MessageLog.trace("FIX ------>"+repport)
+					MessageLog.trace("___"+this.node_to_fix+"----- FIXED ------>"+repport)
 				return repport
 
 
