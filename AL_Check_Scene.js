@@ -1,30 +1,8 @@
 /*Version du 24/01/2019
  Alexandre Cormier*/
-
+/*www.alarigger.com*/
 /*
 
-Script pour checker rapidement un tpl 
--verifier si les drawing sont bien en parent peg et animate off
--verifer si les palettes sont bien toute en environnelment 
--verifier si les mc sont bien renseignés
--verifer si les valeur de Z sont petites 
--verifier les valeurs de scale autres que 1 
--verifier si certaines substitutions sont inutilisées
--verifier si tout les composites sont bien en passthrougth 
-
-
-Il produit un rapport des différents problemes 
-et propose d'appliquer les coorections ou non 
-
-
-Mode selection only
-
-Rapport sur les groupes 
-
-nettoeyr le log 
-reparer les check boxe
-
-supprimer les clefs d'exposition
 
 
 */
@@ -329,6 +307,12 @@ function AL_Check_Scene(){
 		return drawing_repport
 
 	
+
+	}
+
+	function look_for_keys_in_exposure(){
+
+
 
 	}
 
@@ -670,6 +654,10 @@ function AL_Check_Scene(){
 				    break;
 
 				  case "DELETE UNEXPOSED SUB":
+				  		//Delete_substitutions()
+				    break;
+
+				  case "KEY INSIDE EXPOSITION":
 				  		//Delete_substitutions()
 				    break;
 				  case "CHANGE SCALE X TO 1":
