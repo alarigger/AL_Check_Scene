@@ -13,14 +13,11 @@ function AL_Check_Scene() {
     /*VARIABLES*/
 
     var cf = frame.current();
-
     var root_node = "";
-
     var relevent_types = ["READ", "COMPOSITE", "PEG"];
-
     var nodes_to_treat = [];
-
     var fix_list = []
+    var exclusionList= []
 
     var substituions_tab = {
         columns: [],
@@ -28,17 +25,11 @@ function AL_Check_Scene() {
         substitions: []
     }
 
-
     var scene_drawings, scene_composites, scene_pegs, scene_MC;
-
     var Final_message = "Repport : \n";
-
     var drawing_repport = "BAD DRAWINGS : ";
-
     var message_bad_mc_list = "BAD MC \n";
-
     var final_regex = /\b-GUIDE|\bGUI|\bTIGE_paupiere|\bOMBRE/g;
-
     var OVEWRITE_KEYS = false;
 
 
@@ -50,36 +41,23 @@ function AL_Check_Scene() {
     var selected_types = [];
     var selected_fixes = [];
 
-
     var typeBoxes = []
     var fixBoxes = []
 
     var fix_count = {}
     var type_count = {}
 
-
-
-
     /*EXECUTION*/
 
-    MessageLog.trace("-------ZK_Check_Tpl-------");
-
-    scene.beginUndoRedoAccum("ZK_Check_Tpl");
-
+    MessageLog.trace("-------AL_Check_Scene-------");
+    scene.beginUndoRedoAccum("AL_Check_Scene");
     fetch_nodes();
-
     reset_sub_tab()
-
     Final_message += check_drawings();
-
     Final_message += check_pegs()
-
     Final_message += check_composites()
-
     show_repport()
-
     build_available_fixes_and_types_list()
-
     inputDialog()
 
 
@@ -120,7 +98,8 @@ function AL_Check_Scene() {
             for (var t = 0; t < available_types_list.length; t++) {
                 var typeBox = new CheckBox
                 typeBox.text = available_types_list[t] + " ( " + type_count[available_types_list[t]] + " nodes )";
-                typeBox.checked = false;
+                typeBox.nodetype = available_types_list[t];
+                typeBox.checked = true;
                 d.add(typeBox);
                 typeBoxes.push(typeBox);
 
@@ -135,7 +114,9 @@ function AL_Check_Scene() {
             for (var f = 0; f < available_fixes_list.length; f++) {
                 var fixBox = new CheckBox
                 fixBox.text = available_fixes_list[f] + " ( " + fix_count[available_fixes_list[f]] + " nodes )";
-                fixBox.checked = false;
+                fixBox.fixtype = available_fixes_list[f];
+                fixBox.checked = true;
+
                 d.add(fixBox);
                 fixBoxes.push(fixBox);
 
@@ -145,13 +126,17 @@ function AL_Check_Scene() {
             inputL.label = "Exclude nodes with names containing : ";
             d.add(inputL);
             final_regex = "";
-            inputL.text = "RIG";
+            inputL.text = "EXCLUDE";
+
+ 			var line4 = new Label();
+            line4.text = "\n (more details on the detected issues are availes in the MessageLog)  \n";
+            d.add(line4);
 
             var line3 = new Label();
             line3.text = "\n**************\n";
             d.add(line3);
 
-            allBox.text = "FIXE THEM ALL !" + " ( " + all_nodes + " nodes )";
+            allBox.text = "FIX THEM ALL !" + " ( " + all_nodes + " nodes )";
             allBox.checked = false;
             d.add(allBox);
 
@@ -161,7 +146,7 @@ function AL_Check_Scene() {
 
 
             var line3 = new Label();
-            line3.text = "\n it seams good to me (but i might be wrong) \n";
+            line3.text = "\n CONGRATULATION, THE SCENE IS CLEAN ! (according to the script) \n";
             d.add(line3);
 
 
@@ -182,7 +167,7 @@ function AL_Check_Scene() {
                 for (var tb = 0; tb < typeBoxes.length; tb++) {
 
                     if (typeBoxes[tb].checked) {
-                        selected_types.push(typeBoxes[tb].text)
+                        selected_types.push(typeBoxes[tb].nodetype)
                     }
 
                 }
@@ -190,7 +175,7 @@ function AL_Check_Scene() {
                 for (var fb = 0; fb < fixBoxes.length; fb++) {
 
                     if (fixBoxes[fb].checked) {
-                        selected_fixes.push(fixBoxes[fb].text)
+                        selected_fixes.push(fixBoxes[fb].fixtype)
                     }
 
                 }
@@ -198,7 +183,8 @@ function AL_Check_Scene() {
 
 
             if (inputL.text != "" && inputL.text != null) {
-                final_regex = build_regex(inputL.text + ",");
+               exclusionList = inputL.text.split(",");
+               MessageLog.trace("exclusionList : "+exclusionList)
 
             }
 
@@ -207,23 +193,6 @@ function AL_Check_Scene() {
         }
 
     }
-
-    function build_regex(str) {
-
-        var exclusionList = str.split(",");
-        var build_regex = "/";
-        for (var e = 0; e < exclusionList.length; e++) {
-
-            if (e > 0) {
-                build_regex = build_regex + "|";
-            }
-            build_regex = build_regex + "\\b" + exclusionList[e];;
-        }
-        return build_regex + "/g";
-        MessageLog.trace(final_regex)
-
-    }
-
 
     function fetch_nodes() {
 
@@ -243,7 +212,6 @@ function AL_Check_Scene() {
 
         Final_message += "";
         MessageLog.trace(Final_message);
-        //MessageBox.information(Final_message);
 
     }
 
@@ -254,25 +222,31 @@ function AL_Check_Scene() {
         for (var i = 0; i < scene_drawings.length; i++) {
 
             currentNode = scene_drawings[i];
-
             var currentName = node.getName(currentNode)
-
             var problemes_list = [];
 
 
             if (node.getTextAttr(currentNode, cf, "canAnimate") == "Y") {
+
                 problemes_list.push("Animate using animation tool is ON !");
                 fix_list.push(new Fix("TURN OFF ANIMATE", currentNode));
+
             }
 
             if (node.getTextAttr(currentNode, cf, "useDrawingPivot") != "Apply Embedded Pivot on Parent Peg") {
+
                 problemes_list.push("Pivot not Embedded on parent peg !");
                 fix_list.push(new Fix("PIVOT ON PARENT PEG", currentNode));
-
 
             }
 
 
+            if(keys_in_exposure(currentNode)==true){
+
+  				 problemes_list.push("Keys in exposure !");
+                fix_list.push(new Fix("REMOVE KEYS IN EXPOSURE", currentNode));
+
+            }
 
 
             if (problemes_list.length > 0) {
@@ -286,17 +260,9 @@ function AL_Check_Scene() {
                 }
 
                 selection.addNodeToSelection(currentNode);
-
                 node.setTimelineTag(currentNode, true)
-
                 drawing_repport += "!-----> " + current_repport + "\n";
-
-                //MessageBox.information("!-----> "+current_repport+"\n")
-
             }
-
-
-
 
         }
 
@@ -308,26 +274,130 @@ function AL_Check_Scene() {
 
     }
 
-    function look_for_keys_in_exposure(drawing) {
+    function keys_in_exposure(drawing) {
+
+    	 MessageLog.trace("-------look_for_keys_in_exposure-------");
+
+    	var check = false;
 
         var drawingcolumn = getDrawingColumn(drawing)
 
-        for (var f = 0; f < frame.numberOf() + 1; f++) {
+        /*Checking every transform parameters*/
+        var linkedColumnX = node.linkedColumn(drawing,"offset.x");
+        var linkedColumnY = node.linkedColumn(drawing,"offset.y");
+        var linkedColumnZ = node.linkedColumn(drawing,"offset.z");
+        var linkedColumnSX = node.linkedColumn(drawing,"scale.x");
+        var linkedColumnSY = node.linkedColumn(drawing,"scale.y");
+        var linkedColumnAZ = node.linkedColumn(drawing,"rotation.anglez");
+        var linkedColumnSK = node.linkedColumn(drawing,"skew");
 
-            column.clearKeyFrame(drawingcolumn, f)
-
+        if(linkedColumnX!= ""){
+        	check = true;
         }
+        if (linkedColumnY!= ""){
+        	check = true;
+
+		}
+        if (linkedColumnZ!= ""){
+        	check = true
+		}
+        if(linkedColumnSX!= ""){
+        	check = true;
+        }
+        if (linkedColumnSY!= ""){
+        	check = true;
+
+		}
+        if (linkedColumnAZ!= ""){
+        	check = true
+		}
+        if (linkedColumnSK!= ""){
+        	check = true
+		}
+
+        MessageLog.trace(node.linkedColumn(drawing,"offset"))
+        MessageLog.trace(node.linkedColumn(drawing,"offset.x"))
+        MessageLog.trace(node.linkedColumn(drawing,"offset.y"))
+
+        return check;
 
     }
 
     function clear_keys_in_exposure(drawing) {
 
-        var drawingcolumn = getDrawingColumn(drawing)
+    	MessageLog.trace("-------clear_keys_in_exposure-------");
 
-        for (var f = 0; f < frame.numberOf() + 1; f++) {
+    	//node.setTextAttr(drawing, "canAnimate", cf, "Y");
+    	//node.setTextAttr(this.node_to_fix, "useDrawingPivot", cf, "Apply Embedded Pivot on Drawing Layer");
 
-            column.clearKeyFrame(drawingcolumn, f)
+      	var linkedColumnX = node.linkedColumn(drawing,"offset.x");
+        var linkedColumnY = node.linkedColumn(drawing,"offset.y");
+        var linkedColumnZ = node.linkedColumn(drawing,"offset.z");
+        var linkedColumnSX = node.linkedColumn(drawing,"scale.x");
+        var linkedColumnSY = node.linkedColumn(drawing,"scale.y");
+        var linkedColumnAZ = node.linkedColumn(drawing,"rotation.anglez");
+        var linkedColumnSK = node.linkedColumn(drawing,"skew");
 
+
+        /*Clear keyframes*/
+		for (var f = 0; f < frame.numberOf() + 1; f++) {
+
+			if(linkedColumnX!= ""&& column.isKeyFrame(linkedColumnX,0,f)){
+				column.clearKeyFrame(linkedColumnX, f)
+			}
+			if(linkedColumnY!= "" && column.isKeyFrame(linkedColumnY,0,f)){
+				column.clearKeyFrame(linkedColumnY, f)
+			}
+			if(linkedColumnZ!= "" && column.isKeyFrame(linkedColumnZ,0,f)){
+				column.clearKeyFrame(linkedColumnZ, f)
+			}
+			if(linkedColumnSX!= ""&& column.isKeyFrame(linkedColumnSX,0,f)){
+				column.clearKeyFrame(linkedColumnSX, f)
+			}
+			if(linkedColumnSY!= "" && column.isKeyFrame(linkedColumnSY,0,f)){
+				column.clearKeyFrame(linkedColumnSY, f)
+			}
+			if(linkedColumnAZ!= "" && column.isKeyFrame(linkedColumnAZ,0,f)){
+				column.clearKeyFrame(linkedColumnAZ, f)
+			}
+			if(linkedColumnSK!= "" && column.isKeyFrame(linkedColumnSK,0,f)){
+				column.clearKeyFrame(linkedColumnAZ, f)
+			}
+
+        }
+
+       // node.setTextAttr(drawing, "canAnimate", cf, "N");
+    	//node.setTextAttr(this.node_to_fix, "useDrawingPivot", cf, "Apply Embedded Pivot on Parent Peg");      
+
+
+    	/*Unlink and Remove all columns*/
+        if(linkedColumnX!= ""){
+        	node.unlinkAttr(drawing, "offset.x");
+        	column.removeUnlinkedFunctionColumn	(linkedColumnX)	
+        }
+        if(linkedColumnY!= ""){
+        	node.unlinkAttr(drawing, "offset.y");
+        	column.removeUnlinkedFunctionColumn	(linkedColumnY)	
+        }
+        if(linkedColumnZ!= ""){
+        	node.unlinkAttr(drawing, "offset.z");
+        	column.removeUnlinkedFunctionColumn	(linkedColumnZ)	
+        }
+        if(linkedColumnSX!= ""){
+        	node.unlinkAttr(drawing, "scale.x");
+        	column.removeUnlinkedFunctionColumn	(linkedColumnSX)	
+        }
+        if(linkedColumnSY!= ""){
+        	node.unlinkAttr(drawing,"scale.y");
+        	column.removeUnlinkedFunctionColumn	(linkedColumnSY)	
+        }
+        if(linkedColumnAZ!= ""){
+        	node.unlinkAttr(drawing, "rotation.anglez");
+        	column.removeUnlinkedFunctionColumn	(linkedColumnAZ)	
+        }
+        if(linkedColumnSK!= ""){
+        	node.unlinkAttr(drawing, "skew");
+        	column.removeUnlinkedFunctionColumn	(linkedColumnSK)	
         }
 
     }
@@ -365,9 +435,7 @@ function AL_Check_Scene() {
         for (var i = 0; i < scene_composites.length; i++) {
 
             currentNode = scene_composites[i];
-
             var problemes_list = [];
-
             var currentName = node.getName(currentNode)
 
             if (node.getTextAttr(currentNode, cf, "compositeMode") != "Pass Through") {
@@ -391,7 +459,6 @@ function AL_Check_Scene() {
 
                 selection.addNodeToSelection(currentNode);
                 node.setTimelineTag(currentNode, true)
-
                 composites_repport += "!-----> " + current_repport + "\n";
 
                 //MessageBox.information("!-----> "+current_repport+"\n")
@@ -414,14 +481,9 @@ function AL_Check_Scene() {
         for (var i = 0; i < scene_pegs.length; i++) {
 
             var problemes_list = [];
-
             var currentNode = scene_pegs[i]
-
             var currentName = node.getName(currentNode);
-
-
             var keys = get_Keys(currentNode);
-
             var rest = get_Rest(currentNode)
 
             if (rest.z > 2) {
@@ -465,9 +527,7 @@ function AL_Check_Scene() {
                 }
 
                 selection.addNodeToSelection(currentNode);
-
                 node.setTimelineTag(currentNode, true)
-
                 pegs_repport += "!-----> " + current_repport + "\n" + "\n";
 
                 //MessageBox.information("!-----> "+current_repport+"\n")
@@ -603,6 +663,8 @@ function AL_Check_Scene() {
 
         MessageLog.trace("treat_nodes")
         MessageLog.trace(fix_list.length)
+        MessageLog.trace("selected fixes :"+selected_fixes)
+        MessageLog.trace("selected types :"+selected_types)
 
         for (var i = 0; i < fix_list.length; i++) {
 
@@ -611,9 +673,9 @@ function AL_Check_Scene() {
 
             if (!check_name_pattern(current_fix.node_to_fix)) {
 
-                if (includes(selected_types, node_type) && includes(selected_fixes, current_fix.fixtype)) {
+                if (includes(selected_types,node_type) && includes(selected_fixes, current_fix.fixtype)) {
 
-                    MessageLog.trace(current_fix)
+                    MessageLog.trace("fix "+i+"----"+current_fix)
                     current_fix.apply();
 
                 }
@@ -703,13 +765,8 @@ function AL_Check_Scene() {
                 case "PIVOT ON PARENT PEG":
                     node.setTextAttr(this.node_to_fix, "useDrawingPivot", cf, "Apply Embedded Pivot on Parent Peg");
                     break;
-
-                case "DELETE UNEXPOSED SUB":
-                    //Delete_substitutions()
-                    break;
-
-                case "KEY INSIDE EXPOSITION":
-                    //Delete_substitutions()
+                case "REMOVE KEYS IN EXPOSURE":
+                     clear_keys_in_exposure(this.node_to_fix)
                     break;
                 case "CHANGE SCALE X TO 1":
                     node.setTextAttr(this.node_to_fix, "SCALE.X", 0, 1);
@@ -875,12 +932,23 @@ function AL_Check_Scene() {
 
     }
 
-    function check_name_pattern(n) {
+    function check_name_pattern(str) {
 
-        //Verifie sur le nom examiné contient le mots clef 
-        if (n.match(final_regex)) MessageLog.trace(n + "--------->match!");
-        return n.match(final_regex);
+		for (var e = 0; e < exclusionList.length; e++) {
 
+			MessageLog.trace(str+" check for "+exclusionList[e])
+			var regex = new RegExp("/"+exclusionList[e]+"/g");
+			var result = str.match(regex);
+			MessageLog.trace(result)
+			MessageLog.trace(regex)
+
+			if (result!="") {
+			  MessageLog.trace('string found');
+			  return true;
+			} 
+        }
+
+        return false;
     }
 
 
