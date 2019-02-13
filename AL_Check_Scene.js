@@ -934,19 +934,24 @@ function AL_Check_Scene() {
 
     function check_name_pattern(str) {
 
+    	MessageLog.trace("check_name_pattern")
+
 		for (var e = 0; e < exclusionList.length; e++) {
 
 			MessageLog.trace(str+" check for "+exclusionList[e])
-			var regex = new RegExp("/"+exclusionList[e]+"/g");
+			var regex = new RegExp(exclusionList[e]);
 			var result = str.match(regex);
-			MessageLog.trace(result)
-			MessageLog.trace(regex)
+						MessageLog.trace("regex "+regex)
+			MessageLog.trace("result "+result)
 
-			if (result!="") {
+
+			if (result!=""&&result!=null&&result!=0) {
 			  MessageLog.trace('string found');
 			  return true;
-			} 
+			}
         }
+
+        MessageLog.trace('no match');
 
         return false;
     }
