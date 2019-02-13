@@ -1,3 +1,4 @@
+/****************************** C H E C K    S C E N E **************************
 /*Version du 24/01/2019
  Alexandre Cormier*/
 /*www.alarigger.com*/
@@ -6,841 +7,890 @@
 
 
 */
+function AL_Check_Scene() {
 
 
-function AL_Check_Scene(){
+    /*VARIABLES*/
 
+    var cf = frame.current();
 
-	/*VARIABLES*/
+    var root_node = "";
 
-	var cf = frame.current(); 
-	
-	var root_node = "";
-	
-	var relevent_types = ["READ","COMPOSITE","PEG"];
-	
-	var nodes_to_treat=[];
+    var relevent_types = ["READ", "COMPOSITE", "PEG"];
 
-	var fix_list = []
+    var nodes_to_treat = [];
 
-	var substituions_tab ={
-			columns:[],
-			drawings:[],
-			substitions:[]
-		}
+    var fix_list = []
 
+    var substituions_tab = {
+        columns: [],
+        drawings: [],
+        substitions: []
+    }
 
-	var scene_drawings,scene_composites,scene_pegs,scene_MC;
-	
-	var Final_message = "Repport : \n";
 
-	var drawing_repport = "BAD DRAWINGS : ";
+    var scene_drawings, scene_composites, scene_pegs, scene_MC;
 
-	var message_bad_mc_list = "BAD MC \n";
+    var Final_message = "Repport : \n";
 
-	var final_regex = /\b-GUIDE|\bGUI|\bTIGE_paupiere|\bOMBRE/g;
+    var drawing_repport = "BAD DRAWINGS : ";
 
-	var OVEWRITE_KEYS = false;
+    var message_bad_mc_list = "BAD MC \n";
 
+    var final_regex = /\b-GUIDE|\bGUI|\bTIGE_paupiere|\bOMBRE/g;
 
-	/*FIX VAR*/
+    var OVEWRITE_KEYS = false;
 
-	var available_fixes_list = [];
-	var available_types_list = [];
 
-	var selected_types = [];
-	var selected_fixes = [];
+    /*FIX VAR*/
 
+    var available_fixes_list = [];
+    var available_types_list = [];
 
-	var typeBoxes = []
-	var fixBoxes = []
+    var selected_types = [];
+    var selected_fixes = [];
 
-	var fix_count = {}
-	var type_count = {}
 
+    var typeBoxes = []
+    var fixBoxes = []
 
+    var fix_count = {}
+    var type_count = {}
 
 
-	/*EXECUTION*/
 
-	MessageLog.trace( "-------ZK_Check_Tpl-------");
-	
-	scene.beginUndoRedoAccum("ZK_Check_Tpl"); 
 
-	fetch_nodes();
+    /*EXECUTION*/
 
-	reset_sub_tab()
+    MessageLog.trace("-------ZK_Check_Tpl-------");
 
-	Final_message+=check_drawings();
+    scene.beginUndoRedoAccum("ZK_Check_Tpl");
 
-	Final_message+=check_pegs()
+    fetch_nodes();
 
-	Final_message+=check_composites()
+    reset_sub_tab()
 
-	show_repport()
+    Final_message += check_drawings();
 
-	build_available_fixes_and_types_list()
+    Final_message += check_pegs()
 
-	inputDialog()
+    Final_message += check_composites()
 
-	
-	scene.endUndoRedoAccum();  
-	
-	MessageLog.trace( "--------ENDLOG-");
+    show_repport()
 
+    build_available_fixes_and_types_list()
 
-	/*FUNCTIONS*/
+    inputDialog()
 
 
-	/*I N P U T   D I A L O G*/
-	function inputDialog() {
+    scene.endUndoRedoAccum();
 
-		MessageLog.trace("inputDialog")
+    MessageLog.trace("--------ENDLOG-");
 
-	    var d = new Dialog
-	    d.title = "CHECK SCENE";
-	    d.width = 100;
 
+    /*FUNCTIONS*/
 
-	    var all_nodes = 0;
 
-	    var inputL = new LineEdit;
-	    var line1 = new Label();
-	    var line2 = new Label();
-	    var line3 = new Label();
-	    var allBox = new CheckBox;
+    /*I N P U T   D I A L O G*/
+    function inputDialog() {
 
-		if(available_types_list.length+available_fixes_list.length>0){
+        MessageLog.trace("inputDialog")
 
+        var d = new Dialog
+        d.title = "CHECK SCENE";
+        d.width = 100;
 
-			 var line1 = new Label();
-			line1 .text ="\nTypes of nodes to fix : \n";
-			d.add( line1  );
 
+        var all_nodes = 0;
 
-		    for(var t = 0;t < available_types_list.length;t++){
-		    	var typeBox = new CheckBox
-		    	typeBox.text = available_types_list[t]+" ( "+type_count[available_types_list[t]]+" nodes )";
-		    	typeBox.checked = false;
-		    	d.add( typeBox  );
-		    	typeBoxes.push(typeBox);
+        var inputL = new LineEdit;
+        var line1 = new Label();
+        var line2 = new Label();
+        var line3 = new Label();
+        var allBox = new CheckBox;
 
-		    	all_nodes+=type_count[available_types_list[t]];
-		    }
+        if (available_types_list.length + available_fixes_list.length > 0) {
 
 
-			var line2 = new Label();
-			line2.text ="\nTypes of fixes to apply : \n";
-			d.add( line2 );
+            var line1 = new Label();
+            line1.text = "\nTypes of nodes to fix : \n";
+            d.add(line1);
 
-		    for(var f = 0;f< available_fixes_list.length;f++){
-		    	var fixBox = new CheckBox
-		    	fixBox.text = available_fixes_list[f] +" ( "+fix_count[available_fixes_list[f]]+" nodes )";
-		    	fixBox.checked = false;
-		    	d.add( fixBox  );
-		    	fixBoxes.push(fixBox);
 
-		    }
+            for (var t = 0; t < available_types_list.length; t++) {
+                var typeBox = new CheckBox
+                typeBox.text = available_types_list[t] + " ( " + type_count[available_types_list[t]] + " nodes )";
+                typeBox.checked = false;
+                d.add(typeBox);
+                typeBoxes.push(typeBox);
 
-			var inputL = new LineEdit;
-			inputL.label = "Exclude nodes with names containing : ";
-			d.add( inputL );
-			final_regex="";
-			inputL.text="RIG";
+                all_nodes += type_count[available_types_list[t]];
+            }
 
-		    var line3 = new Label();
-			line3.text ="\n**************\n";
-			d.add( line3 );
 
-		    allBox.text = "FIXE THEM ALL !"+" ( "+all_nodes+" nodes )";
-		    allBox.checked = false;
-		    d.add( allBox );
+            var line2 = new Label();
+            line2.text = "\nTypes of fixes to apply : \n";
+            d.add(line2);
 
+            for (var f = 0; f < available_fixes_list.length; f++) {
+                var fixBox = new CheckBox
+                fixBox.text = available_fixes_list[f] + " ( " + fix_count[available_fixes_list[f]] + " nodes )";
+                fixBox.checked = false;
+                d.add(fixBox);
+                fixBoxes.push(fixBox);
 
+            }
 
-	    }else{
+            var inputL = new LineEdit;
+            inputL.label = "Exclude nodes with names containing : ";
+            d.add(inputL);
+            final_regex = "";
+            inputL.text = "RIG";
 
+            var line3 = new Label();
+            line3.text = "\n**************\n";
+            d.add(line3);
 
-			var line3 = new Label();
-			line3 .text ="\n it seams good to me (but i might be wrong) \n";
-			d.add( line3  );
+            allBox.text = "FIXE THEM ALL !" + " ( " + all_nodes + " nodes )";
+            allBox.checked = false;
+            d.add(allBox);
 
 
-	    }
 
+        } else {
 
 
-	    var rc = d.exec();
-	    if( rc )
-	    {
+            var line3 = new Label();
+            line3.text = "\n it seams good to me (but i might be wrong) \n";
+            d.add(line3);
 
-	    	if(allBox.checked != undefined && allBox.checked == true){
 
-	    		selected_types = available_types_list;
-	    		selected_fixes = available_fixes_list;
+        }
 
-	    	}else{
 
-		    	for(var tb = 0 ; tb<typeBoxes.length;tb++){
 
-		    		if(typeBoxes[tb].checked){
-		    			selected_types.push(typeBoxes[tb].text)
-		    		}
+        var rc = d.exec();
+        if (rc) {
 
-		    	}
+            if (allBox.checked != undefined && allBox.checked == true) {
 
-		    	for(var fb = 0 ; fb<fixBoxes.length;fb++){
+                selected_types = available_types_list;
+                selected_fixes = available_fixes_list;
 
-		    		if(fixBoxes[fb].checked){
-		    			selected_fixes.push(fixBoxes[fb].text)
-		    		}
+            } else {
 
-		    	}	  	
-	    	}
+                for (var tb = 0; tb < typeBoxes.length; tb++) {
 
+                    if (typeBoxes[tb].checked) {
+                        selected_types.push(typeBoxes[tb].text)
+                    }
 
-	    	if(inputL.text!=""&&inputL.text!=null){
-				final_regex = build_regex(inputL.text+",");
+                }
 
-	    	}
+                for (var fb = 0; fb < fixBoxes.length; fb++) {
 
-	    	treat_nodes();
-	      	
-	    }
+                    if (fixBoxes[fb].checked) {
+                        selected_fixes.push(fixBoxes[fb].text)
+                    }
 
-	}
+                }
+            }
 
-	function build_regex(str){
 
-		 var exclusionList = str.split(",");
-	      var build_regex  = "/";
-	      for(var e =0;e<exclusionList.length;e++){
-	      	
-	      	if(e>0){
-	      		build_regex = build_regex+"|";
-	      	}
-	      		build_regex = build_regex+"\\b"+exclusionList[e];;
-	      }
-	      return build_regex+"/g";
-	      MessageLog.trace(final_regex )		
+            if (inputL.text != "" && inputL.text != null) {
+                final_regex = build_regex(inputL.text + ",");
 
-	}
+            }
 
+            treat_nodes();
 
-	function fetch_nodes(){
+        }
 
-		MessageLog.trace("fetch_nodes")
-		
-		scene_drawings = node.getNodes([relevent_types[0]]);
+    }
 
-		scene_composites = node.getNodes([relevent_types[1]]);
+    function build_regex(str) {
 
-		scene_pegs = node.getNodes([relevent_types[2]]);
+        var exclusionList = str.split(",");
+        var build_regex = "/";
+        for (var e = 0; e < exclusionList.length; e++) {
 
-		scene_MC = node.getNodes([relevent_types[3]]);
-		
-	}
-	
-	function show_repport(){
+            if (e > 0) {
+                build_regex = build_regex + "|";
+            }
+            build_regex = build_regex + "\\b" + exclusionList[e];;
+        }
+        return build_regex + "/g";
+        MessageLog.trace(final_regex)
 
-		Final_message += "";
-		MessageLog.trace(Final_message);
-		//MessageBox.information(Final_message);
+    }
 
-	}
 
-	function check_drawings(){
+    function fetch_nodes() {
 
-		drawing_repport = "\n\n ****** D R A W I N G S \n\n";
+        MessageLog.trace("fetch_nodes")
 
-		for (var i = 0 ; i<scene_drawings.length ; i++){
+        scene_drawings = node.getNodes([relevent_types[0]]);
 
-			currentNode = scene_drawings[i];
+        scene_composites = node.getNodes([relevent_types[1]]);
 
-			var currentName = node.getName(currentNode)
+        scene_pegs = node.getNodes([relevent_types[2]]);
 
-			var problemes_list = [];
+        scene_MC = node.getNodes([relevent_types[3]]);
 
+    }
 
-				if(node.getTextAttr( currentNode,cf,"canAnimate")=="Y"){
-					problemes_list.push("Animate using animation tool is ON !");
-					fix_list.push(new Fix("TURN OFF ANIMATE",currentNode));
-				}
+    function show_repport() {
 
-				if(node.getTextAttr( currentNode,cf,"useDrawingPivot")!="Apply Embedded Pivot on Parent Peg"){	
-					problemes_list.push("Pivot not Embedded on parent peg !");
-					fix_list.push(new Fix("PIVOT ON PARENT PEG",currentNode));
-					
+        Final_message += "";
+        MessageLog.trace(Final_message);
+        //MessageBox.information(Final_message);
 
-				}
+    }
 
+    function check_drawings() {
 
+        drawing_repport = "\n\n ****** D R A W I N G S \n\n";
 
-			
-			if(problemes_list.length>0){
+        for (var i = 0; i < scene_drawings.length; i++) {
 
-				var current_repport = currentName+"\n"
+            currentNode = scene_drawings[i];
 
-				for (var p = 0 ; p < problemes_list.length; p++){
+            var currentName = node.getName(currentNode)
 
-						current_repport+=problemes_list[p]+"\n";
+            var problemes_list = [];
 
-				}
 
-				selection.addNodeToSelection(currentNode);
+            if (node.getTextAttr(currentNode, cf, "canAnimate") == "Y") {
+                problemes_list.push("Animate using animation tool is ON !");
+                fix_list.push(new Fix("TURN OFF ANIMATE", currentNode));
+            }
 
-				node.setTimelineTag (currentNode, true)
+            if (node.getTextAttr(currentNode, cf, "useDrawingPivot") != "Apply Embedded Pivot on Parent Peg") {
+                problemes_list.push("Pivot not Embedded on parent peg !");
+                fix_list.push(new Fix("PIVOT ON PARENT PEG", currentNode));
 
-				drawing_repport +=	"!-----> "+current_repport+"\n";		
 
-				//MessageBox.information("!-----> "+current_repport+"\n")
+            }
 
-			}
 
 
 
+            if (problemes_list.length > 0) {
 
-		}
+                var current_repport = currentName + "\n"
 
-		
+                for (var p = 0; p < problemes_list.length; p++) {
 
-		return drawing_repport
+                    current_repport += problemes_list[p] + "\n";
 
-	
+                }
 
-	}
+                selection.addNodeToSelection(currentNode);
 
-	function look_for_keys_in_exposure(){
+                node.setTimelineTag(currentNode, true)
 
+                drawing_repport += "!-----> " + current_repport + "\n";
 
+                //MessageBox.information("!-----> "+current_repport+"\n")
 
-	}
+            }
 
-	function check_composites(){
 
-		composites_repport = "\n\n ****** C O M P O S I T E S \n\n";
 
-		for (var i = 0 ; i<scene_composites.length ; i++){
 
-			currentNode = scene_composites[i];
+        }
 
-			var problemes_list = [];
 
-			var currentName = node.getName(currentNode)
 
-				if(node.getTextAttr( currentNode,cf,"compositeMode")!="Pass Through"){
+        return drawing_repport
 
-					problemes_list.push("not in passthrougth");
-					fix_list.push(new Fix("COMPOSITE IN PASS THROUGH",currentNode));
 
 
-				}
+    }
 
-			
-			if(problemes_list.length>0){
+    function look_for_keys_in_exposure(drawing) {
 
-				var current_repport = currentName+"\n"
+        var drawingcolumn = getDrawingColumn(drawing)
 
-				for (var p = 0 ; p < problemes_list.length; p++){
+        for (var f = 0; f < frame.numberOf() + 1; f++) {
 
-						current_repport+=problemes_list[p]+"\n";
+            column.clearKeyFrame(drawingcolumn, f)
 
-				}
+        }
 
-				selection.addNodeToSelection(currentNode);
-				node.setTimelineTag (currentNode,true)
+    }
 
-				composites_repport +=	"!-----> "+current_repport+"\n";		
+    function clear_keys_in_exposure(drawing) {
 
-				//MessageBox.information("!-----> "+current_repport+"\n")
-			}
+        var drawingcolumn = getDrawingColumn(drawing)
 
+        for (var f = 0; f < frame.numberOf() + 1; f++) {
 
-		}
+            column.clearKeyFrame(drawingcolumn, f)
 
-		
+        }
 
-		return composites_repport
-	}
+    }
 
-	/* P E G */
+    function getDrawingColumn(drawing) {
 
-	function check_pegs(){
+        for (var i = 0; i < Timeline.numLayers; i++) {
 
-		var pegs_repport = "\n\n ****** P E G S \n\n"
+            if (Timeline.layerIsColumn(i)) {
 
-		for (var i = 0 ; i<scene_pegs.length  ; i++){
+                var currentColumn = Timeline.layerToColumn(i);
 
-			var problemes_list = [];
+                if (column.type(currentColumn) == "DRAWING") {
 
-			var currentNode = scene_pegs[i]
+                    var drawing_node = Timeline.layerToNode(i);
 
-			var currentName = node.getName(currentNode);
+                    if (drawing_node == drawing) {
 
+                        return currentColumn;
 
-				var keys = get_Keys(currentNode);
+                    }
 
-				var rest= get_Rest(currentNode )
+                }
 
-				if(rest.z > 2){
+            }
 
-					problemes_list.push("Z value is too high : "+rest.z)
+        }
 
-					fix_list.push(new Fix("CHANGE Z TO 0",currentNode));
-				}
-				if(rest.scalex != 1){
+    }
 
-					problemes_list.push("SCALE X value not egal to 1 : "+rest.scalex)
+    function check_composites() {
 
-					fix_list.push(new Fix("CHANGE SCALE X TO 1",currentNode));
-				}
-				if(rest.scaley !=1){
+        composites_repport = "\n\n ****** C O M P O S I T E S \n\n";
 
-					problemes_list.push("SCALE Y value not egal to 1: "+rest.scaley)
+        for (var i = 0; i < scene_composites.length; i++) {
 
-					fix_list.push(new Fix("CHANGE SCALE Y TO 1",currentNode));
-					
-				}
-				if(rest.skew> 0){
+            currentNode = scene_composites[i];
 
-					problemes_list.push("SKEW values : "+rest.skew)
+            var problemes_list = [];
 
-					fix_list.push(new Fix("CHANGE SKEW TO 0",currentNode));
-					
-				}
+            var currentName = node.getName(currentNode)
 
+            if (node.getTextAttr(currentNode, cf, "compositeMode") != "Pass Through") {
 
+                problemes_list.push("not in passthrougth");
+                fix_list.push(new Fix("COMPOSITE IN PASS THROUGH", currentNode));
 
 
+            }
 
-			if(problemes_list.length>0){
 
-				var current_repport = node.getName(currentNode)+"\n"
+            if (problemes_list.length > 0) {
 
-				for (var p = 0 ; p < problemes_list.length; p++){
+                var current_repport = currentName + "\n"
 
-					current_repport+=problemes_list[p]+"\n";
+                for (var p = 0; p < problemes_list.length; p++) {
 
-				}	
+                    current_repport += problemes_list[p] + "\n";
 
-				selection.addNodeToSelection(currentNode);
+                }
 
-				node.setTimelineTag (currentNode, true)
+                selection.addNodeToSelection(currentNode);
+                node.setTimelineTag(currentNode, true)
 
-				pegs_repport+="!-----> "+current_repport+"\n"+"\n";	
+                composites_repport += "!-----> " + current_repport + "\n";
 
-				//MessageBox.information("!-----> "+current_repport+"\n")
-			}
+                //MessageBox.information("!-----> "+current_repport+"\n")
+            }
 
-			
 
-		}
+        }
 
-		return pegs_repport;
 
-	}
 
-	function get_Rest (peg){
+        return composites_repport
+    }
 
+    /* P E G */
 
-			var Z = 0
-			var rest = {z:0,scalex:0,scaley:0,skew:0}
+    function check_pegs() {
 
-			//On parcour les différents systemes de coordonnées et on multiplie le Z de chaque peg par le facteur 
+        var pegs_repport = "\n\n ****** P E G S \n\n"
 
-				rest.z = node.getTextAttr(peg, cf, "position.z" );
-				rest.scalex = node.getTextAttr(peg, cf, "scale.x" );
-				rest.scaley = node.getTextAttr(peg, cf, "scale.y" );
-				rest.skew = node.getTextAttr(peg, cf, "skew" );
+        for (var i = 0; i < scene_pegs.length; i++) {
 
-			return rest;
+            var problemes_list = [];
 
+            var currentNode = scene_pegs[i]
 
+            var currentName = node.getName(currentNode);
 
-	}
 
-	function get_Keys(peg){
+            var keys = get_Keys(currentNode);
 
-		var sceneFrames = frame.numberOf();
-		var number_of_columns = column.numberOf() 
-		var repport = "";
-		var keys = {z:0,scalex:0,scaley:0,skew:0}
+            var rest = get_Rest(currentNode)
 
-		var Z_key_values = []
-		var Scale_x_key_values = []
-		var Scale_y_key_values = []
-		var Skew_key_values = []
+            if (rest.z > 2) {
 
+                problemes_list.push("Z value is too high : " + rest.z)
 
-		//On va chercher la colonne correspond au peg et on multiplie les valeurs de Z de chaque clefs(contenue entre les crochets rouges) par le facteur 
-		var peg_name = node.getName(peg);
-		var regex ="\\b"+"/"+peg_name+"/g";
+                fix_list.push(new Fix("CHANGE Z TO 0", currentNode));
+            }
+            if (rest.scalex != 1) {
 
-		//On parcour toutes les colonnes
-		for (var c = 0 ; c<number_of_columns;c++){
+                problemes_list.push("SCALE X value not egal to 1 : " + rest.scalex)
 
-			var columnName = column.getName(c)
-			var columnType = column.type(columnName);
-			var columnDisplay = column.getDisplayName( columnName)
+                fix_list.push(new Fix("CHANGE SCALE X TO 1", currentNode));
+            }
+            if (rest.scaley != 1) {
 
-			var first_half = columnDisplay.split(":")[0];
-			var second_half = columnDisplay.split(":")[1];
+                problemes_list.push("SCALE Y value not egal to 1: " + rest.scaley)
 
-			//si leur nom contiens le nom du peg... ou si la partie avant le ":" correspond au nom du peg, et que cette colonne est bien de type 3DPATH, c'est à dire de type position. 
-			if(columnDisplay.match(regex)|| first_half==peg_name){
+                fix_list.push(new Fix("CHANGE SCALE Y TO 1", currentNode));
 
-				if(columnType=="3DPATH"||"BEZIER"){
+            }
+            if (rest.skew > 0) {
 
-					for(var f = 0 ; f<sceneFrames+1;f++){
+                problemes_list.push("SKEW values : " + rest.skew)
 
-						if(column.isKeyFrame(columnName,1,f)){
+                fix_list.push(new Fix("CHANGE SKEW TO 0", currentNode));
 
+            }
 
-							if(columnType=="3DPATH"){
 
-								//Les sous attribus de la colonne 3DPATH. 
-								var Z_value = column.getEntry(columnName,3,f)	
 
-								//si la valeur de Z n'est pas egale à 0.000 et sous la bonne forme 
-								if(typeof(Z_value)=='string'&&Z_value.split(" ")[1]!=undefined){
 
-									Z_key_values .push(Z_value);
+            if (problemes_list.length > 0) {
 
-								}		
-							}
+                var current_repport = node.getName(currentNode) + "\n"
 
-							if(columnType=="BEZIER"){
+                for (var p = 0; p < problemes_list.length; p++) {
 
-								if(second_half=="Scale_x"){
-									Scale_x_key_values.push(column.getEntry(columnName,1,f))
-								}
-								if(second_half=="Scale_y"){
-									Scale_y_key_values.push(column.getEntry(columnName,1,f))
-								}
-								if(second_half=="Skew"){
-									Skew_key_values.push(column.getEntry(columnName,1,f))
-								}
+                    current_repport += problemes_list[p] + "\n";
 
+                }
 
-							}
-												
-							
-						} 
+                selection.addNodeToSelection(currentNode);
 
-					}
-				}
+                node.setTimelineTag(currentNode, true)
 
+                pegs_repport += "!-----> " + current_repport + "\n" + "\n";
 
-			}
+                //MessageBox.information("!-----> "+current_repport+"\n")
+            }
 
-		}			
 
-		//pick the highest value of each types of keys 
 
-		return keys;		
-		
-		
-	}
+        }
 
+        return pegs_repport;
 
-	/*************************************/
+    }
 
+    function get_Rest(peg) {
 
-	function treat_nodes(){
 
-		var repport = ""	
+        var Z = 0
+        var rest = {
+            z: 0,
+            scalex: 0,
+            scaley: 0,
+            skew: 0
+        }
 
-		MessageLog.trace("treat_nodes")
-		MessageLog.trace(fix_list.length)
+        //On parcour les différents systemes de coordonnées et on multiplie le Z de chaque peg par le facteur 
 
-		for (var i = 0 ; i < fix_list.length ; i++){
+        rest.z = node.getTextAttr(peg, cf, "position.z");
+        rest.scalex = node.getTextAttr(peg, cf, "scale.x");
+        rest.scaley = node.getTextAttr(peg, cf, "scale.y");
+        rest.skew = node.getTextAttr(peg, cf, "skew");
 
-			current_fix = fix_list[i];
-			node_type = node.type(current_fix.node_to_fix)
+        return rest;
 
-			if(!check_name_pattern(current_fix.node_to_fix)){
-					
-				if(includes(selected_types,node_type)&&includes(selected_fixes,current_fix.fixtype)){
 
-					MessageLog.trace(current_fix)
-					current_fix.apply();
 
-				}
+    }
 
-			}
+    function get_Keys(peg) {
 
+        var sceneFrames = frame.numberOf();
+        var number_of_columns = column.numberOf()
+        var repport = "";
+        var keys = {
+            z: 0,
+            scalex: 0,
+            scaley: 0,
+            skew: 0
+        }
 
-		}
-		
+        var Z_key_values = []
+        var Scale_x_key_values = []
+        var Scale_y_key_values = []
+        var Skew_key_values = []
 
-	}
 
-	function build_available_fixes_and_types_list(){
+        //On va chercher la colonne correspond au peg et on multiplie les valeurs de Z de chaque clefs(contenue entre les crochets rouges) par le facteur 
+        var peg_name = node.getName(peg);
+        var regex = "\\b" + "/" + peg_name + "/g";
 
+        //On parcour toutes les colonnes
+        for (var c = 0; c < number_of_columns; c++) {
 
-		var stored_nodes = [] 
+            var columnName = column.getName(c)
+            var columnType = column.type(columnName);
+            var columnDisplay = column.getDisplayName(columnName)
 
-		MessageLog.trace("build_available_fixes_and_types_list")
+            var first_half = columnDisplay.split(":")[0];
+            var second_half = columnDisplay.split(":")[1];
 
-		for (var i = 0 ; i < fix_list.length ; i++){
+            //si leur nom contiens le nom du peg... ou si la partie avant le ":" correspond au nom du peg, et que cette colonne est bien de type 3DPATH, c'est à dire de type position. 
+            if (columnDisplay.match(regex) || first_half == peg_name) {
 
-			current_fix = fix_list[i];
-			node_type = node.type(current_fix.node_to_fix)
+                if (columnType == "3DPATH" || "BEZIER") {
 
-			if(!includes(available_fixes_list,current_fix.fixtype)){
+                    for (var f = 0; f < sceneFrames + 1; f++) {
 
-				available_fixes_list.push(current_fix.fixtype)
-			}
+                        if (column.isKeyFrame(columnName, 1, f)) {
 
-			if(!includes(available_types_list,node_type )){
 
-				available_types_list.push(node_type )
-			}
+                            if (columnType == "3DPATH") {
 
-			/*COMPTE DES FIXES ET TYPES*/
+                                //Les sous attribus de la colonne 3DPATH. 
+                                var Z_value = column.getEntry(columnName, 3, f)
 
-			if(!includes(stored_nodes,current_fix.node_to_fix)){
+                                //si la valeur de Z n'est pas egale à 0.000 et sous la bonne forme 
+                                if (typeof(Z_value) == 'string' && Z_value.split(" ")[1] != undefined) {
 
-				if( node_type in type_count ){
+                                    Z_key_values.push(Z_value);
 
-		        		type_count[node_type]+=1
-		       	}else{
+                                }
+                            }
 
-		        		type_count[node_type] = 1;
-		       	}
+                            if (columnType == "BEZIER") {
 
-		       	stored_nodes.push(current_fix.node_to_fix) 
+                                if (second_half == "Scale_x") {
+                                    Scale_x_key_values.push(column.getEntry(columnName, 1, f))
+                                }
+                                if (second_half == "Scale_y") {
+                                    Scale_y_key_values.push(column.getEntry(columnName, 1, f))
+                                }
+                                if (second_half == "Skew") {
+                                    Skew_key_values.push(column.getEntry(columnName, 1, f))
+                                }
 
-			}else{
 
+                            }
 
-			}
 
-			
+                        }
 
-	       	if( current_fix.fixtype in fix_count ){
+                    }
+                }
 
-	        	fix_count[current_fix.fixtype]+=1
-	        }else{
 
-	        	fix_count[current_fix.fixtype] = 1;
-	        }
+            }
 
+        }
 
-		}
+        //pick the highest value of each types of keys 
 
+        return keys;
 
-	}
 
+    }
 
-	/* CLASS FIX */
-	function Fix (fixtype,node_to_fix){
-	    
-	        this.fixtype = fixtype;
-	        this.node_to_fix= node_to_fix
 
-	        this.apply = function(){
+    /*************************************/
 
-	        	MessageLog.trace("APPLY FIX")
 
-	        	var repport = this.fixtype+"  ";
+    function treat_nodes() {
 
-	        	switch(this.fixtype) {
-				  case "TURN OFF ANIMATE":
-						node.setTextAttr( this.node_to_fix , "canAnimate", cf , "N");  
-				    break;
-				  case "PIVOT ON PARENT PEG":
-				  		node.setTextAttr( this.node_to_fix , "useDrawingPivot", cf , "Apply Embedded Pivot on Parent Peg");  
-				    break;
+        var repport = ""
 
-				  case "DELETE UNEXPOSED SUB":
-				  		//Delete_substitutions()
-				    break;
+        MessageLog.trace("treat_nodes")
+        MessageLog.trace(fix_list.length)
 
-				  case "KEY INSIDE EXPOSITION":
-				  		//Delete_substitutions()
-				    break;
-				  case "CHANGE SCALE X TO 1":
-						node.setTextAttr(this.node_to_fix,"SCALE.X", 0,1);
-						node.setTextAttr(this.node_to_fix,"scale.x",0,1);
-						node.setTextAttr(this.node_to_fix,"scale.xy", 0,1);
-				    break;
-				  case "CHANGE SCALE Y TO 1":
-				  		node.setTextAttr(this.node_to_fix,"SCALE.Y", 0, 1);
-				  		node.setTextAttr(this.node_to_fix,"scale.y", 0,1);
-				  		node.setTextAttr(this.node_to_fix,"scale.xy", 0,1);
-				    break;
-				  case "CHANGE SKEW TO 0":
-						node.setTextAttr(this.node_to_fix,"skew", 0, 0);
-				    break;
-				  case "CHANGE Z TO 0":
-						node.setTextAttr(this.nnde_to_fix, "POSITION.Z",0,"0");
-						node.setTextAttr(this.node_to_fix, "pos.z",0,"0");
-						node.setTextAttr(this.node_to_fix, "position.z",0,"0");
-						node.setTextAttr(this.node_to_fix, "position.separate.z",0,"0");
-				    break;
-				  case "COMPOSITE IN PASS THROUGH":
-						node.setTextAttr(this.node_to_fix,"compositeMode",0,"Pass Through");
-				    break;
-				  default:
-				  		MessageLog.trace("unknown fix type")
-				}
+        for (var i = 0; i < fix_list.length; i++) {
 
-					MessageLog.trace("___"+this.node_to_fix+"----- FIXED ------>"+repport)
-				return repport
+            current_fix = fix_list[i];
+            node_type = node.type(current_fix.node_to_fix)
 
+            if (!check_name_pattern(current_fix.node_to_fix)) {
 
-	        }
+                if (includes(selected_types, node_type) && includes(selected_fixes, current_fix.fixtype)) {
 
+                    MessageLog.trace(current_fix)
+                    current_fix.apply();
 
-	    
-	}
-	
-	function includes(array,item){
-		
-		for (var i = 0 ; i < array.length; i++){
-			if(array[i]==item){
-					return true; 
-			}
-		}
-		return false; 
-		
-	}
+                }
 
-	function reset_sub_tab(){
+            }
 
-		substituions_tab ={
-			columns:[],
-			drawings:[],
-			substitions:[]
-		};
 
-	}
+        }
 
-	function get_Attr_Keyframes(n,attr){
 
-		var sceneFrames = frame.numberOf();
-		var numLayers = Timeline.numLayers; 
+    }
 
-		var rapport ="";
+    function build_available_fixes_and_types_list() {
 
-		keyframes_tabs ={
-			columns:[],
-			nodes:[],
-			keyframes:[]
-		};
 
+        var stored_nodes = []
 
-		 for ( var i = 0; i < Timeline.numLayers; i++ )
-		{
+        MessageLog.trace("build_available_fixes_and_types_list")
 
+        for (var i = 0; i < fix_list.length; i++) {
 
-	 		 if ( Timeline.layerIsNode( i ) && Timeline.layerToNode(i) ==d){
-	 			
-				var currentColumn = Timeline.layerToColumn(i);
+            current_fix = fix_list[i];
+            node_type = node.type(current_fix.node_to_fix)
 
-				var node = Timeline.layerToNode(i);
+            if (!includes(available_fixes_list, current_fix.fixtype)) {
 
-				if (column.type(currentColumn) == "DRAWING"){
+                available_fixes_list.push(current_fix.fixtype)
+            }
 
-					var substitution_timing = column.getDrawingTimings(currentColumn);
+            if (!includes(available_types_list, node_type)) {
 
-					var unexposed_subs = substitution_timing;
+                available_types_list.push(node_type)
+            }
 
-					//on fait la liste des subs non exposées 
+            /*COMPTE DES FIXES ET TYPES*/
 
-					for(var f=0; f<sceneFrames;f++){
+            if (!includes(stored_nodes, current_fix.node_to_fix)) {
 
-						var current_substitution = column.getEntry(currentColumn,1,f);
+                if (node_type in type_count) {
 
-						if(current_substitution!=""){
+                    type_count[node_type] += 1
+                } else {
 
-							var indexToRemove = unexposed_subs.indexOf(current_substitution);
+                    type_count[node_type] = 1;
+                }
 
-							if(indexToRemove>-1){
+                stored_nodes.push(current_fix.node_to_fix)
 
-								unexposed_subs.splice(indexToRemove,1);
+            } else {
 
-							}
 
-						}
+            }
 
-					}
-					
-					if(unexposed_subs.length>0){
 
-						rapport ="Unexposed_subs";
 
-						substituions_tab.columns.push(currentColumn);
+            if (current_fix.fixtype in fix_count) {
 
-						substituions_tab.drawings.push(node);
+                fix_count[current_fix.fixtype] += 1
+            } else {
 
-						substituions_tab.substitions.push(unexposed_subs);
+                fix_count[current_fix.fixtype] = 1;
+            }
 
-					}
 
-				}
+        }
 
-			}
 
-		}
+    }
 
-		for(var c = 0; c<substituions_tab.columns.length;c++){
 
-			var currentColumn = substituions_tab.columns[c];
-			var drawing = substituions_tab.drawings[c];
+    /* CLASS FIX */
+    function Fix(fixtype, node_to_fix) {
 
-			rapport= "Unexposed substitutions :" 
-			
-			for(var u =  0; u <substituions_tab.substitions[c].length;u++){
+        this.fixtype = fixtype;
+        this.node_to_fix = node_to_fix
 
-				var sub_to_delete = substituions_tab.substitions[c][u];
-				rapport+= sub_to_delete;
+        this.apply = function() {
 
-				if(u<substituions_tab.substitions[c].length-1){
-						rapport+=" , ";	
-				}					
+            MessageLog.trace("APPLY FIX")
 
-			}
+            var repport = this.fixtype + "  ";
 
+            switch (this.fixtype) {
+                case "TURN OFF ANIMATE":
+                    node.setTextAttr(this.node_to_fix, "canAnimate", cf, "N");
+                    break;
+                case "PIVOT ON PARENT PEG":
+                    node.setTextAttr(this.node_to_fix, "useDrawingPivot", cf, "Apply Embedded Pivot on Parent Peg");
+                    break;
 
-		}
+                case "DELETE UNEXPOSED SUB":
+                    //Delete_substitutions()
+                    break;
 
-		return rapport;
+                case "KEY INSIDE EXPOSITION":
+                    //Delete_substitutions()
+                    break;
+                case "CHANGE SCALE X TO 1":
+                    node.setTextAttr(this.node_to_fix, "SCALE.X", 0, 1);
+                    node.setTextAttr(this.node_to_fix, "scale.x", 0, 1);
+                    node.setTextAttr(this.node_to_fix, "scale.xy", 0, 1);
+                    break;
+                case "CHANGE SCALE Y TO 1":
+                    node.setTextAttr(this.node_to_fix, "SCALE.Y", 0, 1);
+                    node.setTextAttr(this.node_to_fix, "scale.y", 0, 1);
+                    node.setTextAttr(this.node_to_fix, "scale.xy", 0, 1);
+                    break;
+                case "CHANGE SKEW TO 0":
+                    node.setTextAttr(this.node_to_fix, "skew", 0, 0);
+                    break;
+                case "CHANGE Z TO 0":
+                    node.setTextAttr(this.nnde_to_fix, "POSITION.Z", 0, "0");
+                    node.setTextAttr(this.node_to_fix, "pos.z", 0, "0");
+                    node.setTextAttr(this.node_to_fix, "position.z", 0, "0");
+                    node.setTextAttr(this.node_to_fix, "position.separate.z", 0, "0");
+                    break;
+                case "COMPOSITE IN PASS THROUGH":
+                    node.setTextAttr(this.node_to_fix, "compositeMode", 0, "Pass Through");
+                    break;
+                default:
+                    MessageLog.trace("unknown fix type")
+            }
 
-	}
-	
+            MessageLog.trace("___" + this.node_to_fix + "----- FIXED ------>" + repport)
+            return repport
 
-	function print_node_attribiutes(n){
-			
-		var myList = node.getAttrList( n, 1);
 
-		for (i=0;i<100;i++){
-			if(typeof myList[i] === 'object' && myList[i] !== null){
-				MessageLog.trace(myList[i].keyword());		
-			}
-		}
-		
-		return 
-					
-	}
+        }
 
-	function check_name_pattern(n){
 
-		//Verifie sur le nom examiné contient le mots clef 
-		if(n.match(final_regex))MessageLog.trace(n+"--------->match!");
-		return n.match(final_regex);
-		
-	}
-	
 
-	function getShortName(n){
-			
-		//Extrait le nom du node sans la hierarchie
-		split_string = n.split("/")
-		return split_string[split_string.length-1];
-		
-	}
+    }
 
+    function includes(array, item) {
 
-}  
+        for (var i = 0; i < array.length; i++) {
+            if (array[i] == item) {
+                return true;
+            }
+        }
+        return false;
+
+    }
+
+    function reset_sub_tab() {
+
+        substituions_tab = {
+            columns: [],
+            drawings: [],
+            substitions: []
+        };
+
+    }
+
+    function get_Attr_Keyframes(n, attr) {
+
+        var sceneFrames = frame.numberOf();
+        var numLayers = Timeline.numLayers;
+
+        var rapport = "";
+
+        keyframes_tabs = {
+            columns: [],
+            nodes: [],
+            keyframes: []
+        };
+
+
+        for (var i = 0; i < Timeline.numLayers; i++) {
+
+
+            if (Timeline.layerIsNode(i) && Timeline.layerToNode(i) == d) {
+
+                var currentColumn = Timeline.layerToColumn(i);
+
+                var node = Timeline.layerToNode(i);
+
+                if (column.type(currentColumn) == "DRAWING") {
+
+                    var substitution_timing = column.getDrawingTimings(currentColumn);
+
+                    var unexposed_subs = substitution_timing;
+
+                    //on fait la liste des subs non exposées 
+
+                    for (var f = 0; f < sceneFrames; f++) {
+
+                        var current_substitution = column.getEntry(currentColumn, 1, f);
+
+                        if (current_substitution != "") {
+
+                            var indexToRemove = unexposed_subs.indexOf(current_substitution);
+
+                            if (indexToRemove > -1) {
+
+                                unexposed_subs.splice(indexToRemove, 1);
+
+                            }
+
+                        }
+
+                    }
+
+                    if (unexposed_subs.length > 0) {
+
+                        rapport = "Unexposed_subs";
+
+                        substituions_tab.columns.push(currentColumn);
+
+                        substituions_tab.drawings.push(node);
+
+                        substituions_tab.substitions.push(unexposed_subs);
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        for (var c = 0; c < substituions_tab.columns.length; c++) {
+
+            var currentColumn = substituions_tab.columns[c];
+            var drawing = substituions_tab.drawings[c];
+
+            rapport = "Unexposed substitutions :"
+
+            for (var u = 0; u < substituions_tab.substitions[c].length; u++) {
+
+                var sub_to_delete = substituions_tab.substitions[c][u];
+                rapport += sub_to_delete;
+
+                if (u < substituions_tab.substitions[c].length - 1) {
+                    rapport += " , ";
+                }
+
+            }
+
+
+        }
+
+        return rapport;
+
+    }
+
+
+    function print_node_attribiutes(n) {
+
+        var myList = node.getAttrList(n, 1);
+
+        for (i = 0; i < 100; i++) {
+            if (typeof myList[i] === 'object' && myList[i] !== null) {
+                MessageLog.trace(myList[i].keyword());
+            }
+        }
+
+        return
+
+    }
+
+    function check_name_pattern(n) {
+
+        //Verifie sur le nom examiné contient le mots clef 
+        if (n.match(final_regex)) MessageLog.trace(n + "--------->match!");
+        return n.match(final_regex);
+
+    }
+
+
+    function getShortName(n) {
+
+        //Extrait le nom du node sans la hierarchie
+        split_string = n.split("/")
+        return split_string[split_string.length - 1];
+
+    }
+
+
+}
