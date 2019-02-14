@@ -1,5 +1,5 @@
 /****************************** C H E C K    S C E N E **************************
-/*Version du 13/02/2019
+/*Version du 24/01/2019
  Alexandre Cormier*/
 /*www.alarigger.com*/
 /*
@@ -259,8 +259,6 @@ function AL_Check_Scene() {
 
                 }
 
-                selection.addNodeToSelection(currentNode);
-                node.setTimelineTag(currentNode, true)
                 drawing_repport += "!-----> " + current_repport + "\n";
             }
 
@@ -271,6 +269,13 @@ function AL_Check_Scene() {
         return drawing_repport
 
 
+
+    }
+
+    function select_and_tag_node(n){
+
+		selection.addNodeToSelection(n);
+        node.setTimelineTag(n, true)
 
     }
 
@@ -669,7 +674,9 @@ function AL_Check_Scene() {
         for (var i = 0; i < fix_list.length; i++) {
 
             current_fix = fix_list[i];
+
             node_type = node.type(current_fix.node_to_fix)
+
 
             if (!check_name_pattern(current_fix.node_to_fix)) {
 
@@ -677,6 +684,8 @@ function AL_Check_Scene() {
 
                     MessageLog.trace("fix "+i+"----"+current_fix)
                     current_fix.apply();
+
+                    select_and_tag_node(current_fix.node_to_fix)
 
                 }
 
