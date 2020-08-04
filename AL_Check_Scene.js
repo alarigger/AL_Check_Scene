@@ -1,10 +1,12 @@
 /****************************** C H E C K    S C E N E **************************
-/*Version du 24/01/2019
+/*Version du 04/08/2019
+
+
  Alexandre Cormier*/
 /*www.alarigger.com*/
 /*
 
-
+limite le script à un groupe selectionne
 
 */
 function AL_Check_Scene() {
@@ -18,6 +20,8 @@ function AL_Check_Scene() {
     var nodes_to_treat = [];
     var fix_list = []
     var exclusionList= []
+	
+	var TARGET = "GROUP";
 
     var substituions_tab = {
         columns: [],
@@ -25,7 +29,10 @@ function AL_Check_Scene() {
         substitions: []
     }
 
-    var scene_drawings, scene_composites, scene_pegs, scene_MC;
+    var scene_drawings =[];
+	var scene_composites =[];
+	var scene_pegs =[];
+	var scene_MC =[];
     var Final_message = "Repport : \n";
     var drawing_repport = "BAD DRAWINGS : ";
     var message_bad_mc_list = "BAD MC \n";
@@ -51,7 +58,8 @@ function AL_Check_Scene() {
 
     MessageLog.trace("-------AL_Check_Scene-------");
     scene.beginUndoRedoAccum("AL_Check_Scene");
-    fetch_nodes();
+    //fetch_nodes();
+	fetch_nodes_in_group();
     reset_sub_tab()
     Final_message += check_drawings();
     Final_message += check_pegs()
@@ -144,9 +152,10 @@ function AL_Check_Scene() {
 
         } else {
 
+			
 
             var line3 = new Label();
-            line3.text = "\n CONGRATULATION, THE SCENE IS CLEAN ! (according to the script) \n";
+            line3.text = "\n CONGRATULATION, THE "+TARGET+" IS CLEAN ! (according to the script) \n";
             d.add(line3);
 
 
@@ -194,7 +203,7 @@ function AL_Check_Scene() {
 
     }
 
-    function fetch_nodes() {
+    function fetch_all_nodes() {
 
         MessageLog.trace("fetch_nodes")
 
@@ -205,6 +214,92 @@ function AL_Check_Scene() {
         scene_pegs = node.getNodes([relevent_types[2]]);
 
         scene_MC = node.getNodes([relevent_types[3]]);
+
+    }
+	
+    function fetch_nodes_in_group() {
+
+		MessageLog.trace("fetch_nodes_in_group");
+		
+		//Rassemble les nodes à traiter 
+		var groups_to_analyse = [];
+		
+		var selected_nodes = selection.selectedNodes(0);
+		
+		//MessageLog.trace(selected_nodes)
+		
+		root_node = selected_nodes[0];
+		
+		var parent_group = 	node.parentNode(root_node) ;
+		
+		groups_to_analyse.push(parent_group);
+		
+		if( selection.numberOfNodesSelected()>0){ 
+				
+				var selected_nodes = selection.selectedNodes(0);
+
+				//Première boucle parmis les nodes selectionnés
+				for(var n = 0; n < selection.numberOfNodesSelected(); n++){ 
+
+					var currentNode = selected_nodes[n];
+
+					if(node.type(currentNode)=="GROUP"){
+						
+						groups_to_analyse.push(currentNode);
+
+					} 
+
+				}  
+
+				var number_of_groups = groups_to_analyse.length;
+
+				//deuxième boucle recursive à travers les groupes 
+				for (var g = 0 ; g < number_of_groups ; g ++){
+					
+					currentGroup = groups_to_analyse[g];
+					var subNodesInGroup= node.numberOfSubNodes(currentGroup);
+					
+					for (var sn = 0 ; sn < subNodesInGroup; sn++){
+
+						var sub_node_name = node.subNode(currentGroup,sn);
+						var sub_node = node.subNodeByName(currentGroup,sub_node_name);
+						var sub_node_type = node.type(sub_node_name);
+
+						var shortname = getShortName(sub_node_name)
+
+						switch(sub_node_type){
+
+							case relevent_types[0]:
+							
+								scene_drawings.push(sub_node_name)
+
+							break;
+							case relevent_types[1] :
+							
+								scene_composites.push(sub_node_name)
+
+							break;
+							case relevent_types[2] :
+							
+								scene_pegs.push(sub_node_name)
+
+							break;
+							case relevent_types[3]:
+							
+								scene_MC.push(sub_node_name)
+
+							break;
+						}
+
+							
+					}			
+					
+				}
+
+			}else{  
+				fetch_all_nodes();
+				TARGET = "SCENE";
+			} 	
 
     }
 
