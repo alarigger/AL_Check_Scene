@@ -1,5 +1,10 @@
 /****************************** C H E C K    S C E N E **************************
-/*Version du 04/08/2019
+/*Version du 18/12/2020
+
+V 2
+
+don't use embeded pivot 
+et separate coords. 
 
 
  Alexandre Cormier*/
@@ -9,8 +14,8 @@
 limite le script à un groupe selectionne
 
 */
-function AL_Check_Scene() {
 
+function AL_Check_Scene() {
 
     /*VARIABLES*/
 
@@ -38,7 +43,6 @@ function AL_Check_Scene() {
     var message_bad_mc_list = "BAD MC \n";
     var final_regex = /\b-GUIDE|\bGUI|\bTIGE_paupiere|\bOMBRE/g;
     var OVEWRITE_KEYS = false;
-
 
     /*FIX VAR*/
 
@@ -68,14 +72,11 @@ function AL_Check_Scene() {
     build_available_fixes_and_types_list()
     inputDialog()
 
-
     scene.endUndoRedoAccum();
 
     MessageLog.trace("--------ENDLOG-");
 
-
     /*FUNCTIONS*/
-
 
     /*I N P U T   D I A L O G*/
     function inputDialog() {
@@ -85,7 +86,6 @@ function AL_Check_Scene() {
         var d = new Dialog
         d.title = "CHECK SCENE";
         d.width = 100;
-
 
         var all_nodes = 0;
 
@@ -97,11 +97,9 @@ function AL_Check_Scene() {
 
         if (available_types_list.length + available_fixes_list.length > 0) {
 
-
             var line1 = new Label();
             line1.text = "\nTypes of nodes to fix : \n";
             d.add(line1);
-
 
             for (var t = 0; t < available_types_list.length; t++) {
                 var typeBox = new CheckBox
@@ -113,7 +111,6 @@ function AL_Check_Scene() {
 
                 all_nodes += type_count[available_types_list[t]];
             }
-
 
             var line2 = new Label();
             line2.text = "\nTypes of fixes to apply : \n";
@@ -189,7 +186,6 @@ function AL_Check_Scene() {
 
                 }
             }
-
 
             if (inputL.text != "" && inputL.text != null) {
                exclusionList = inputL.text.split(",");
@@ -291,7 +287,6 @@ function AL_Check_Scene() {
 							break;
 						}
 
-							
 					}			
 					
 				}
@@ -328,10 +323,10 @@ function AL_Check_Scene() {
 
             }
 
-            if (node.getTextAttr(currentNode, cf, "useDrawingPivot") != "Apply Embedded Pivot on Parent Peg") {
+            if (node.getTextAttr(currentNode, cf, "useDrawingPivot") != "Don't Use Embedded Pivot") {
 
-                problemes_list.push("Pivot not Embedded on parent peg !");
-                fix_list.push(new Fix("PIVOT ON PARENT PEG", currentNode));
+                problemes_list.push("Pivot Embedded on parent peg !");
+                fix_list.push(new Fix("DONT USE PIVOT", currentNode));
 
             }
 
@@ -359,11 +354,7 @@ function AL_Check_Scene() {
 
         }
 
-
-
-        return drawing_repport
-
-
+        return drawing_repport;
 
     }
 
@@ -466,11 +457,6 @@ function AL_Check_Scene() {
 
         }
 
-       // node.setTextAttr(drawing, "canAnimate", cf, "N");
-    	//node.setTextAttr(this.node_to_fix, "useDrawingPivot", cf, "Apply Embedded Pivot on Parent Peg");      
-
-
-    	/*Unlink and Remove all columns*/
         if(linkedColumnX!= ""){
         	node.unlinkAttr(drawing, "offset.x");
         	column.removeUnlinkedFunctionColumn	(linkedColumnX)	
@@ -499,7 +485,6 @@ function AL_Check_Scene() {
         	node.unlinkAttr(drawing, "skew");
         	column.removeUnlinkedFunctionColumn	(linkedColumnSK)	
         }
-
     }
 
     function getDrawingColumn(drawing) {
@@ -517,15 +502,10 @@ function AL_Check_Scene() {
                     if (drawing_node == drawing) {
 
                         return currentColumn;
-
                     }
-
                 }
-
             }
-
         }
-
     }
 
     function check_composites() {
@@ -564,15 +544,63 @@ function AL_Check_Scene() {
                 //MessageBox.information("!-----> "+current_repport+"\n")
             }
 
-
         }
 
-
-
         return composites_repport
+
     }
 
     /* P E G */
+	
+	
+	function get_separate(n){
+		
+			var s_attr = "POSITION.SEPARATE";
+			var result = node.getTextAttr(n,frame.current(),"POSITION.SEPARATE");
+			
+			if(result != null){
+				return result; 
+			}
+			
+			return false;
+			
+	}
+	
+	function set_separate_on(n){
+		
+		var s_attr = "POSITION.SEPARATE";
+		node.setTextAttr(n,"POSITION.SEPARATE",frame.current(),"On");
+		
+	}
+
+	function getAttributesNameList (snode){
+		
+		//MessageLog.trace(arguments.callee.name)
+		
+		var attrList = node.getAttrList(snode, frame.current(),"");
+		var name_list= Array();
+		
+		for (var i=0; i<attrList.length; i++){	
+
+			var attr = attrList[i];
+			var a_name = attr.keyword();
+			var sub_attr = attr.getSubAttributes()
+			name_list.push(a_name);
+
+			if(sub_attr.length > 0){
+				for (var j=0; j<sub_attr.length; j++){	
+					attrList.push(sub_attr[j]);
+					var sub_attr_name = sub_attr[j].fullKeyword()
+					name_list.push(sub_attr_name);
+				}
+			}
+			
+		}
+		
+		
+		return name_list;
+		
+	}
 
     function check_pegs() {
 
@@ -585,19 +613,25 @@ function AL_Check_Scene() {
             var currentName = node.getName(currentNode);
             var keys = get_Keys(currentNode);
             var rest = get_Rest(currentNode)
-
+			var separate = get_separate(currentNode);
+			
+			MessageLog.trace("separate : ");
+			MessageLog.trace(separate);
+			
             if (rest.z > 2) {
 
                 problemes_list.push("Z value is too high : " + rest.z)
 
                 fix_list.push(new Fix("CHANGE Z TO 0", currentNode));
             }
+			
             if (rest.scalex != 1) {
 
                 problemes_list.push("SCALE X value not egal to 1 : " + rest.scalex)
 
                 fix_list.push(new Fix("CHANGE SCALE X TO 1", currentNode));
             }
+			
             if (rest.scaley != 1) {
 
                 problemes_list.push("SCALE Y value not egal to 1: " + rest.scaley)
@@ -605,6 +639,7 @@ function AL_Check_Scene() {
                 fix_list.push(new Fix("CHANGE SCALE Y TO 1", currentNode));
 
             }
+			
             if (rest.skew > 0) {
 
                 problemes_list.push("SKEW values : " + rest.skew)
@@ -613,9 +648,15 @@ function AL_Check_Scene() {
 
             }
 
+            if (separate == "Off") {
 
+                problemes_list.push("SEPARATE OFF")
 
+                fix_list.push(new Fix("TURN SEPARATE ON", currentNode));
 
+            }
+			
+			
             if (problemes_list.length > 0) {
 
                 var current_repport = node.getName(currentNode) + "\n"
@@ -632,9 +673,7 @@ function AL_Check_Scene() {
 
                 //MessageBox.information("!-----> "+current_repport+"\n")
             }
-
-
-
+			
         }
 
         return pegs_repport;
@@ -642,7 +681,6 @@ function AL_Check_Scene() {
     }
 
     function get_Rest(peg) {
-
 
         var Z = 0
         var rest = {
@@ -660,9 +698,6 @@ function AL_Check_Scene() {
         rest.skew = node.getTextAttr(peg, cf, "skew");
 
         return rest;
-
-
-
     }
 
     function get_Keys(peg) {
@@ -716,7 +751,6 @@ function AL_Check_Scene() {
                                 if (typeof(Z_value) == 'string' && Z_value.split(" ")[1] != undefined) {
 
                                     Z_key_values.push(Z_value);
-
                                 }
                             }
 
@@ -731,26 +765,16 @@ function AL_Check_Scene() {
                                 if (second_half == "Skew") {
                                     Skew_key_values.push(column.getEntry(columnName, 1, f))
                                 }
-
-
                             }
-
-
                         }
-
                     }
                 }
-
-
             }
-
         }
 
         //pick the highest value of each types of keys 
-
         return keys;
-
-
+		
     }
 
 
@@ -866,8 +890,8 @@ function AL_Check_Scene() {
                 case "TURN OFF ANIMATE":
                     node.setTextAttr(this.node_to_fix, "canAnimate", cf, "N");
                     break;
-                case "PIVOT ON PARENT PEG":
-                    node.setTextAttr(this.node_to_fix, "useDrawingPivot", cf, "Apply Embedded Pivot on Parent Peg");
+                case "DONT USE PIVOT":
+                    node.setTextAttr(this.node_to_fix, "useDrawingPivot", cf, "Don't Use Embedded Pivot");
                     break;
                 case "REMOVE KEYS IN EXPOSURE":
                      clear_keys_in_exposure(this.node_to_fix)
@@ -894,6 +918,9 @@ function AL_Check_Scene() {
                 case "COMPOSITE IN PASS THROUGH":
                     node.setTextAttr(this.node_to_fix, "compositeMode", 0, "Pass Through");
                     break;
+				case "TURN SEPARATE ON":
+					set_separate_on(this.node_to_fix);
+					break;
                 default:
                     MessageLog.trace("unknown fix type")
             }
