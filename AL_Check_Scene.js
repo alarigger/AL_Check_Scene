@@ -1,5 +1,10 @@
 /****************************** C H E C K    S C E N E **************************
-/*Version du 04/08/2019
+/*Version du 18/12/2020
+
+V 2
+
+don't use embeded pivot 
+et separate coords. 
 
 
  Alexandre Cormier*/
@@ -9,8 +14,8 @@
 limite le script à un groupe selectionne
 
 */
-function AL_Check_Scene() {
 
+function AL_Check_Scene() {
 
     /*VARIABLES*/
 
@@ -38,7 +43,6 @@ function AL_Check_Scene() {
     var message_bad_mc_list = "BAD MC \n";
     var final_regex = /\b-GUIDE|\bGUI|\bTIGE_paupiere|\bOMBRE/g;
     var OVEWRITE_KEYS = false;
-
 
     /*FIX VAR*/
 
@@ -68,14 +72,11 @@ function AL_Check_Scene() {
     build_available_fixes_and_types_list()
     inputDialog()
 
-
     scene.endUndoRedoAccum();
 
     MessageLog.trace("--------ENDLOG-");
 
-
     /*FUNCTIONS*/
-
 
     /*I N P U T   D I A L O G*/
     function inputDialog() {
@@ -85,7 +86,6 @@ function AL_Check_Scene() {
         var d = new Dialog
         d.title = "CHECK SCENE";
         d.width = 100;
-
 
         var all_nodes = 0;
 
@@ -97,23 +97,20 @@ function AL_Check_Scene() {
 
         if (available_types_list.length + available_fixes_list.length > 0) {
 
-
             var line1 = new Label();
             line1.text = "\nTypes of nodes to fix : \n";
             d.add(line1);
-
 
             for (var t = 0; t < available_types_list.length; t++) {
                 var typeBox = new CheckBox
                 typeBox.text = available_types_list[t] + " ( " + type_count[available_types_list[t]] + " nodes )";
                 typeBox.nodetype = available_types_list[t];
-                typeBox.checked = true;
+                typeBox.checked = false;
                 d.add(typeBox);
                 typeBoxes.push(typeBox);
 
                 all_nodes += type_count[available_types_list[t]];
             }
-
 
             var line2 = new Label();
             line2.text = "\nTypes of fixes to apply : \n";
@@ -189,7 +186,6 @@ function AL_Check_Scene() {
 
                 }
             }
-
 
             if (inputL.text != "" && inputL.text != null) {
                exclusionList = inputL.text.split(",");
@@ -291,7 +287,6 @@ function AL_Check_Scene() {
 							break;
 						}
 
-							
 					}			
 					
 				}
@@ -328,10 +323,10 @@ function AL_Check_Scene() {
 
             }
 
-            if (node.getTextAttr(currentNode, cf, "useDrawingPivot") != "Apply Embedded Pivot on Parent Peg") {
+            if (node.getTextAttr(currentNode, cf, "useDrawingPivot") != "Don't Use Embedded Pivot") {
 
-                problemes_list.push("Pivot not Embedded on parent peg !");
-                fix_list.push(new Fix("PIVOT ON PARENT PEG", currentNode));
+                problemes_list.push("Pivot Embedded on parent peg !");
+                fix_list.push(new Fix("DONT USE PIVOT", currentNode));
 
             }
 
@@ -359,11 +354,7 @@ function AL_Check_Scene() {
 
         }
 
-
-
-        return drawing_repport
-
-
+        return drawing_repport;
 
     }
 
@@ -423,7 +414,7 @@ function AL_Check_Scene() {
 
     }
 
-    function clear_keys_in_exposure(drawing) {
+    function clear_keys_in_exposure(drawing,cf) {
 
     	MessageLog.trace("-------clear_keys_in_exposure-------");
 
@@ -439,38 +430,31 @@ function AL_Check_Scene() {
         var linkedColumnSK = node.linkedColumn(drawing,"skew");
 
 
-        /*Clear keyframes*/
-		for (var f = 0; f < frame.numberOf() + 1; f++) {
+       
 
-			if(linkedColumnX!= ""&& column.isKeyFrame(linkedColumnX,0,f)){
-				column.clearKeyFrame(linkedColumnX, f)
-			}
-			if(linkedColumnY!= "" && column.isKeyFrame(linkedColumnY,0,f)){
-				column.clearKeyFrame(linkedColumnY, f)
-			}
-			if(linkedColumnZ!= "" && column.isKeyFrame(linkedColumnZ,0,f)){
-				column.clearKeyFrame(linkedColumnZ, f)
-			}
-			if(linkedColumnSX!= ""&& column.isKeyFrame(linkedColumnSX,0,f)){
-				column.clearKeyFrame(linkedColumnSX, f)
-			}
-			if(linkedColumnSY!= "" && column.isKeyFrame(linkedColumnSY,0,f)){
-				column.clearKeyFrame(linkedColumnSY, f)
-			}
-			if(linkedColumnAZ!= "" && column.isKeyFrame(linkedColumnAZ,0,f)){
-				column.clearKeyFrame(linkedColumnAZ, f)
-			}
-			if(linkedColumnSK!= "" && column.isKeyFrame(linkedColumnSK,0,f)){
-				column.clearKeyFrame(linkedColumnAZ, f)
-			}
-
-        }
-
-       // node.setTextAttr(drawing, "canAnimate", cf, "N");
-    	//node.setTextAttr(this.node_to_fix, "useDrawingPivot", cf, "Apply Embedded Pivot on Parent Peg");      
+		if(linkedColumnX!= ""&& column.isKeyFrame(linkedColumnX,0,cf)){
+			column.clearKeyFrame(linkedColumnX, f)
+		}
+		if(linkedColumnY!= "" && column.isKeyFrame(linkedColumnY,0,cf)){
+			column.clearKeyFrame(linkedColumnY, f)
+		}
+		if(linkedColumnZ!= "" && column.isKeyFrame(linkedColumnZ,0,cf)){
+			column.clearKeyFrame(linkedColumnZ, f)
+		}
+		if(linkedColumnSX!= ""&& column.isKeyFrame(linkedColumnSX,0,cf)){
+			column.clearKeyFrame(linkedColumnSX, f)
+		}
+		if(linkedColumnSY!= "" && column.isKeyFrame(linkedColumnSY,0,cf)){
+			column.clearKeyFrame(linkedColumnSY, f)
+		}
+		if(linkedColumnAZ!= "" && column.isKeyFrame(linkedColumnAZ,0,cf)){
+			column.clearKeyFrame(linkedColumnAZ, f)
+		}
+		if(linkedColumnSK!= "" && column.isKeyFrame(linkedColumnSK,0,cf)){
+			column.clearKeyFrame(linkedColumnAZ, f)
+		}
 
 
-    	/*Unlink and Remove all columns*/
         if(linkedColumnX!= ""){
         	node.unlinkAttr(drawing, "offset.x");
         	column.removeUnlinkedFunctionColumn	(linkedColumnX)	
@@ -499,7 +483,6 @@ function AL_Check_Scene() {
         	node.unlinkAttr(drawing, "skew");
         	column.removeUnlinkedFunctionColumn	(linkedColumnSK)	
         }
-
     }
 
     function getDrawingColumn(drawing) {
@@ -517,15 +500,10 @@ function AL_Check_Scene() {
                     if (drawing_node == drawing) {
 
                         return currentColumn;
-
                     }
-
                 }
-
             }
-
         }
-
     }
 
     function check_composites() {
@@ -564,15 +542,63 @@ function AL_Check_Scene() {
                 //MessageBox.information("!-----> "+current_repport+"\n")
             }
 
-
         }
 
-
-
         return composites_repport
+
     }
 
     /* P E G */
+	
+	
+	function get_separate(n){
+		
+			var s_attr = "POSITION.SEPARATE";
+			var result = node.getTextAttr(n,frame.current(),"POSITION.SEPARATE");
+			
+			if(result != null){
+				return result; 
+			}
+			
+			return false;
+			
+	}
+	
+	function set_separate_on(n){
+		
+		var s_attr = "POSITION.SEPARATE";
+		node.setTextAttr(n,"POSITION.SEPARATE",frame.current(),"On");
+		
+	}
+
+	function getAttributesNameList (snode){
+		
+		//MessageLog.trace(arguments.callee.name)
+		
+		var attrList = node.getAttrList(snode, frame.current(),"");
+		var name_list= Array();
+		
+		for (var i=0; i<attrList.length; i++){	
+
+			var attr = attrList[i];
+			var a_name = attr.keyword();
+			var sub_attr = attr.getSubAttributes()
+			name_list.push(a_name);
+
+			if(sub_attr.length > 0){
+				for (var j=0; j<sub_attr.length; j++){	
+					attrList.push(sub_attr[j]);
+					var sub_attr_name = sub_attr[j].fullKeyword()
+					name_list.push(sub_attr_name);
+				}
+			}
+			
+		}
+		
+		
+		return name_list;
+		
+	}
 
     function check_pegs() {
 
@@ -585,27 +611,34 @@ function AL_Check_Scene() {
             var currentName = node.getName(currentNode);
             var keys = get_Keys(currentNode);
             var rest = get_Rest(currentNode)
-
-            if (rest.z > 2) {
+			var separate = get_separate(currentNode);
+			
+			MessageLog.trace("separate : ");
+			MessageLog.trace(separate);
+			
+            if (rest.z > 2 && keys.z != 0) {
 
                 problemes_list.push("Z value is too high : " + rest.z)
 
                 fix_list.push(new Fix("CHANGE Z TO 0", currentNode));
             }
-            if (rest.scalex != 1) {
+			
+            if (rest.scalex != 1 && keys.scalex != 1) {
 
                 problemes_list.push("SCALE X value not egal to 1 : " + rest.scalex)
 
                 fix_list.push(new Fix("CHANGE SCALE X TO 1", currentNode));
             }
-            if (rest.scaley != 1) {
+			
+            if (rest.scaley != 1&& keys.scaley != 1) {
 
                 problemes_list.push("SCALE Y value not egal to 1: " + rest.scaley)
 
                 fix_list.push(new Fix("CHANGE SCALE Y TO 1", currentNode));
 
             }
-            if (rest.skew > 0) {
+			
+            if (rest.skew != 0&& keys.skew != 0) {
 
                 problemes_list.push("SKEW values : " + rest.skew)
 
@@ -613,9 +646,14 @@ function AL_Check_Scene() {
 
             }
 
+            if (separate == "Off") {
 
+                problemes_list.push("SEPARATE OFF")
 
+                fix_list.push(new Fix("TURN SEPARATE ON", currentNode));
 
+            }
+		
             if (problemes_list.length > 0) {
 
                 var current_repport = node.getName(currentNode) + "\n"
@@ -632,9 +670,7 @@ function AL_Check_Scene() {
 
                 //MessageBox.information("!-----> "+current_repport+"\n")
             }
-
-
-
+			
         }
 
         return pegs_repport;
@@ -643,7 +679,6 @@ function AL_Check_Scene() {
 
     function get_Rest(peg) {
 
-
         var Z = 0
         var rest = {
             z: 0,
@@ -651,29 +686,51 @@ function AL_Check_Scene() {
             scaley: 0,
             skew: 0
         }
-
-        //On parcour les différents systemes de coordonnées et on multiplie le Z de chaque peg par le facteur 
-
         rest.z = node.getTextAttr(peg, cf, "position.z");
         rest.scalex = node.getTextAttr(peg, cf, "scale.x");
         rest.scaley = node.getTextAttr(peg, cf, "scale.y");
-        rest.skew = node.getTextAttr(peg, cf, "skew");
+        rest.skew = node.getTextAttr(peg, cf, "SKEW");
 
         return rest;
-
-
-
     }
+	
+	function get_linked_columns(_node){
+		
+		var attr_colmun_list = Array();
+	
+		var attrList = getAttributesNameList (_node);
+		
+		for (var i=0; i<attrList.length; i++){
+			
+			var attribute_name = attrList[i]
+
+			var linked_column = node.linkedColumn(_node,attribute_name)
+			
+			if( linked_column !=""){
+				
+				var att_col = {attr:attribute_name,col:linked_column};
+				
+				attr_colmun_list.push(att_col);
+			
+			}
+			
+		}
+		
+		return attr_colmun_list;
+		
+		
+	}
 
     function get_Keys(peg) {
 
         var sceneFrames = frame.numberOf();
         var number_of_columns = column.numberOf()
         var repport = "";
+		//those should sty at 0 or 1
         var keys = {
             z: 0,
-            scalex: 0,
-            scaley: 0,
+            scalex: 1,
+            scaley: 1,
             skew: 0
         }
 
@@ -681,76 +738,43 @@ function AL_Check_Scene() {
         var Scale_x_key_values = []
         var Scale_y_key_values = []
         var Skew_key_values = []
-
-
-        //On va chercher la colonne correspond au peg et on multiplie les valeurs de Z de chaque clefs(contenue entre les crochets rouges) par le facteur 
-        var peg_name = node.getName(peg);
-        var regex = "\\b" + "/" + peg_name + "/g";
-
-        //On parcour toutes les colonnes
-        for (var c = 0; c < number_of_columns; c++) {
-
-            var columnName = column.getName(c)
-            var columnType = column.type(columnName);
-            var columnDisplay = column.getDisplayName(columnName)
-
-            var first_half = columnDisplay.split(":")[0];
-            var second_half = columnDisplay.split(":")[1];
-
-            //si leur nom contiens le nom du peg... ou si la partie avant le ":" correspond au nom du peg, et que cette colonne est bien de type 3DPATH, c'est à dire de type position. 
-            if (columnDisplay.match(regex) || first_half == peg_name) {
-
-                if (columnType == "3DPATH" || "BEZIER") {
-
-                    for (var f = 0; f < sceneFrames + 1; f++) {
-
-                        if (column.isKeyFrame(columnName, 1, f)) {
-
-
-                            if (columnType == "3DPATH") {
-
-                                //Les sous attribus de la colonne 3DPATH. 
-                                var Z_value = column.getEntry(columnName, 3, f)
-
-                                //si la valeur de Z n'est pas egale à 0.000 et sous la bonne forme 
-                                if (typeof(Z_value) == 'string' && Z_value.split(" ")[1] != undefined) {
-
-                                    Z_key_values.push(Z_value);
-
-                                }
-                            }
-
-                            if (columnType == "BEZIER") {
-
-                                if (second_half == "Scale_x") {
-                                    Scale_x_key_values.push(column.getEntry(columnName, 1, f))
-                                }
-                                if (second_half == "Scale_y") {
-                                    Scale_y_key_values.push(column.getEntry(columnName, 1, f))
-                                }
-                                if (second_half == "Skew") {
-                                    Skew_key_values.push(column.getEntry(columnName, 1, f))
-                                }
-
-
-                            }
-
-
-                        }
-
-                    }
-                }
-
-
-            }
-
-        }
-
-        //pick the highest value of each types of keys 
+		
+		var linked_column = get_linked_columns(peg);
+		
+		 for (var f = 0; f < sceneFrames + 1; f++) {
+		
+			for (var c = 0; c < linked_column.length; c++) {
+				
+				var atcol = linked_column[c];
+				
+				var cur_attribute = atcol.attr;
+				var cur_colmun = atcol.col;
+				
+				switch (atcol.attr){
+					
+					case("SCALE.X"):
+						keys.scalex*=column.getEntry(cur_colmun, 1, f)
+					break;
+					case("SCALE.Y"):
+						keys.scaley*=column.getEntry(cur_colmun, 1, f)
+					break;			
+					case("SCALE.XY"):
+					
+					break;					
+					case("SKEW"):
+						keys.skew+=column.getEntry(cur_colmun, 1, f)
+					break;		
+					case("POSITION.Z"):
+						keys.z*=column.getEntry(cur_colmun, 1, f)
+					break;					
+				}
+				
+			}
+		
+		 }
 
         return keys;
-
-
+		
     }
 
 
@@ -771,20 +795,24 @@ function AL_Check_Scene() {
             current_fix = fix_list[i];
 
             node_type = node.type(current_fix.node_to_fix)
+			
+			 /*Clear keyframes*/
+			for (var f = 0; f < frame.numberOf() + 1; f++) {
 
+				if (!check_name_pattern(current_fix.node_to_fix)) {
 
-            if (!check_name_pattern(current_fix.node_to_fix)) {
+					if (includes(selected_types,node_type) && includes(selected_fixes, current_fix.fixtype)) {
 
-                if (includes(selected_types,node_type) && includes(selected_fixes, current_fix.fixtype)) {
+						MessageLog.trace("fix "+i+"----"+current_fix)
+						current_fix.apply(f);
 
-                    MessageLog.trace("fix "+i+"----"+current_fix)
-                    current_fix.apply();
+						select_and_tag_node(current_fix.node_to_fix)
 
-                    select_and_tag_node(current_fix.node_to_fix)
+					}
 
-                }
-
-            }
+				}
+			
+			}
 
 
         }
@@ -856,57 +884,80 @@ function AL_Check_Scene() {
         this.fixtype = fixtype;
         this.node_to_fix = node_to_fix
 
-        this.apply = function() {
+        this.apply = function(cf) {
 
             MessageLog.trace("APPLY FIX")
 
             var repport = this.fixtype + "  ";
+			
+			var linked_column  ="";
 
             switch (this.fixtype) {
                 case "TURN OFF ANIMATE":
                     node.setTextAttr(this.node_to_fix, "canAnimate", cf, "N");
                     break;
-                case "PIVOT ON PARENT PEG":
-                    node.setTextAttr(this.node_to_fix, "useDrawingPivot", cf, "Apply Embedded Pivot on Parent Peg");
+                case "DONT USE PIVOT":
+                    node.setTextAttr(this.node_to_fix, "useDrawingPivot", cf, "Don't Use Embedded Pivot");
                     break;
                 case "REMOVE KEYS IN EXPOSURE":
                      clear_keys_in_exposure(this.node_to_fix)
                     break;
                 case "CHANGE SCALE X TO 1":
-                    node.setTextAttr(this.node_to_fix, "SCALE.X", 0, 1);
-                    node.setTextAttr(this.node_to_fix, "scale.x", 0, 1);
-                    node.setTextAttr(this.node_to_fix, "scale.xy", 0, 1);
+                    node.setTextAttr(this.node_to_fix, "SCALE.X", cf, 1);
+                    node.setTextAttr(this.node_to_fix, "SCALE.XY",cf, 1);
+					this.apply_to_column("SCALE.X",cf,1);
+					
+                    break;
+                case "CHANGE SKEW X TO 0":
+                    node.setTextAttr(this.node_to_fix, "SKEW", cf, 1);
                     break;
                 case "CHANGE SCALE Y TO 1":
-                    node.setTextAttr(this.node_to_fix, "SCALE.Y", 0, 1);
-                    node.setTextAttr(this.node_to_fix, "scale.y", 0, 1);
-                    node.setTextAttr(this.node_to_fix, "scale.xy", 0, 1);
+                    node.setTextAttr(this.node_to_fix, "SCALE", cf, 1);
+                    node.setTextAttr(this.node_to_fix, "SCALE.Y", cf, 1);
+                    node.setTextAttr(this.node_to_fix, "SCALE.XY", cf, 1);
+					this.apply_to_column("SCALE.Y",cf,1);
+					
                     break;
                 case "CHANGE SKEW TO 0":
-                    node.setTextAttr(this.node_to_fix, "skew", 0, 0);
+				
+                    node.setTextAttr(this.node_to_fix, "SKEW", cf, 0);
+					this.apply_to_column("SKEW",cf,0);
+					
                     break;
                 case "CHANGE Z TO 0":
-                    node.setTextAttr(this.nnde_to_fix, "POSITION.Z", 0, "0");
-                    node.setTextAttr(this.node_to_fix, "pos.z", 0, "0");
-                    node.setTextAttr(this.node_to_fix, "position.z", 0, "0");
-                    node.setTextAttr(this.node_to_fix, "position.separate.z", 0, "0");
+                    node.setTextAttr(this.node_to_fix, "POSITION.Z", cf, 0);
+					this.apply_to_column("POSITION.Z",cf,0);
                     break;
                 case "COMPOSITE IN PASS THROUGH":
-                    node.setTextAttr(this.node_to_fix, "compositeMode", 0, "Pass Through");
+                    node.setTextAttr(this.node_to_fix, "compositeMode", cf, "Pass Through");
                     break;
+				case "TURN SEPARATE ON":
+					set_separate_on(this.node_to_fix);
+					break;
                 default:
                     MessageLog.trace("unknown fix type")
             }
 
             MessageLog.trace("___" + this.node_to_fix + "----- FIXED ------>" + repport)
+			
             return repport
 
 
         }
+		
+		this.apply_to_column = function(_attribute,cf,value){
+			
+			var  linked_column = node.linkedColumn(this.node_to_fix,_attribute)
+			if(column.isKeyFrame(linked_column,0,cf)){
+				column.setEntry(linked_column,0,cf,value);
+			}
+			
+		}
 
 
 
     }
+
 
     function includes(array, item) {
 
